@@ -42,7 +42,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/iaghapour/Remnawave-Installer/
 
 ## 🧩 سورس (ریپو اصلی)
 
-🔗 [https://docs.rw/docs/overview/quick-start/](https://docs.rw/docs/overview/quick-start/)
+🔗 [https://docs.rw](https://docs.rw/docs/overview/quick-start/)
 
 ---
 
