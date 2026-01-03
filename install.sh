@@ -78,6 +78,7 @@ FRONT_END_DOMAIN=${DOMAIN}
 SUB_PUBLIC_DOMAIN=${DOMAIN}/api/sub
 JWT_AUTH_SECRET=$(openssl rand -hex 64)
 JWT_API_TOKENS_SECRET=$(openssl rand -hex 64)
+METRICS_USER=admin       # <--- این خط جدید اضافه شد
 METRICS_PASS=$(openssl rand -hex 64)
 WEBHOOK_SECRET_HEADER=$(openssl rand -hex 64)
 POSTGRES_USER=postgres
