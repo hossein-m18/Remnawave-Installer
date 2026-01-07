@@ -25,8 +25,8 @@ show_header() {
 
 # Root Check
 if [ "$EUID" -ne 0 ]; then
-  echo -e "${RED}Error: Please run as root (sudo)${NC}"
-  exit 1
+    echo -e "${RED}Error: Please run as root (sudo)${NC}"
+    exit 1
 fi
 
 # Function to install Docker
@@ -60,16 +60,16 @@ case $choice in
         echo -e "${GREEN}Starting Panel Installation...${NC}"
         
         install_docker
-
+        
         read -p "Enter your Domain (e.g., panel.example.com): " DOMAIN
         if [ -z "$DOMAIN" ]; then
             echo -e "${RED}Domain cannot be empty!${NC}"
             exit 1
         fi
-
+        
         mkdir -p /opt/remnawave
         cd /opt/remnawave
-
+        
         echo -e "${BLUE}Generating secrets and configuration...${NC}"
         
         # Create .env (Updated with METRICS_USER)
@@ -88,7 +88,7 @@ DATABASE_URL=postgresql://postgres:postgres@remnawave-db:5432/remnawave?schema=p
 REDIS_HOST=remnawave-redis
 REDIS_PORT=6379
 EOF
-
+        
         # Create docker-compose.yml
         cat <<EOF > docker-compose.yml
 services:
@@ -150,21 +150,21 @@ volumes:
   remnawave-redis-data:
   caddy-data:
 EOF
-
+        
         # Create Caddyfile
         cat <<EOF > Caddyfile
 ${DOMAIN} {
     reverse_proxy remnawave:3000
 }
 EOF
-
+        
         echo -e "${BLUE}Starting services...${NC}"
         docker compose up -d
-
+        
         echo -e "\n${GREEN}Installation Complete!${NC}"
         echo -e "Access your panel at: https://${DOMAIN}"
-        ;;
-
+    ;;
+    
     2)
         # ==================== INSTALL NODE ====================
         show_header
@@ -172,8 +172,28 @@ EOF
         
         install_docker
         
-        mkdir -p /opt/remnawave-node
-        cd /opt/remnawave-node
+        # Ask for node name
+        echo ""
+        read -p "Enter a unique name for this node (e.g., node1, us-west, ir-tehran): " NODE_NAME
+        if [ -z "$NODE_NAME" ]; then
+            echo -e "${RED}Node name cannot be empty!${NC}"
+            exit 1
+        fi
+        
+        # Sanitize node name (remove spaces and special chars)
+        NODE_NAME=$(echo "$NODE_NAME" | tr -cd '[:alnum:]-_')
+        
+        NODE_DIR="/opt/remnawave-node-${NODE_NAME}"
+        
+        # Check if node already exists
+        if [ -d "$NODE_DIR" ]; then
+            echo -e "${RED}A node with name '${NODE_NAME}' already exists at ${NODE_DIR}!${NC}"
+            echo -e "${YELLOW}Choose a different name or uninstall the existing node first.${NC}"
+            exit 1
+        fi
+        
+        mkdir -p "$NODE_DIR"
+        cd "$NODE_DIR"
         
         echo -e "${YELLOW}INSTRUCTIONS:${NC}"
         echo "1. Go to your Panel > Nodes > Create Node."
@@ -185,14 +205,16 @@ EOF
         nano docker-compose.yml
         
         if [ -s docker-compose.yml ]; then
-            echo -e "${BLUE}Starting Node...${NC}"
+            echo -e "${BLUE}Starting Node '${NODE_NAME}'...${NC}"
             docker compose up -d
-            echo -e "${GREEN}Node started successfully!${NC}"
+            echo -e "${GREEN}Node '${NODE_NAME}' started successfully!${NC}"
+            echo -e "${BLUE}Node directory: ${NODE_DIR}${NC}"
         else
             echo -e "${RED}File was empty. Node installation aborted.${NC}"
+            rm -rf "$NODE_DIR"
         fi
-        ;;
-
+    ;;
+    
     3)
         # ==================== UNINSTALL PANEL ====================
         show_header
@@ -213,34 +235,78 @@ EOF
         else
             echo "Cancelled."
         fi
-        ;;
-
+    ;;
+    
     4)
         # ==================== UNINSTALL NODE ====================
         show_header
-        echo -e "${RED}WARNING: This will delete the Node on this server!${NC}"
-        read -p "Are you sure? (y/n): " confirm
-        if [[ $confirm == "y" || $confirm == "Y" ]]; then
-            if [ -d "/opt/remnawave-node" ]; then
-                cd /opt/remnawave-node
-                echo -e "${BLUE}Stopping node...${NC}"
-                docker compose down -v
-                cd ..
-                echo -e "${BLUE}Removing files...${NC}"
-                rm -rf /opt/remnawave-node
-                echo -e "${GREEN}Node successfully uninstalled.${NC}"
+        echo -e "${YELLOW}Installed Nodes:${NC}"
+        echo ""
+        
+        # Find all node directories
+        NODE_DIRS=($(find /opt -maxdepth 1 -type d -name "remnawave-node-*" 2>/dev/null | sort))
+        
+        if [ ${#NODE_DIRS[@]} -eq 0 ]; then
+            echo -e "${RED}No nodes found!${NC}"
+            exit 0
+        fi
+        
+        # List nodes with numbers
+        i=1
+        for dir in "${NODE_DIRS[@]}"; do
+            node_name=$(basename "$dir" | sed 's/remnawave-node-//')
+            echo "  $i) $node_name (${dir})"
+            ((i++))
+        done
+        echo ""
+        echo "  0) Uninstall ALL nodes"
+        echo ""
+        
+        read -p "Enter the number of the node to uninstall (or 0 for all): " node_choice
+        
+        if [ "$node_choice" == "0" ]; then
+            echo -e "${RED}WARNING: This will delete ALL nodes on this server!${NC}"
+            read -p "Are you sure? (y/n): " confirm
+            if [[ $confirm == "y" || $confirm == "Y" ]]; then
+                for dir in "${NODE_DIRS[@]}"; do
+                    node_name=$(basename "$dir" | sed 's/remnawave-node-//')
+                    cd "$dir"
+                    echo -e "${BLUE}Stopping node '${node_name}'...${NC}"
+                    docker compose down -v
+                    cd /opt
+                    rm -rf "$dir"
+                    echo -e "${GREEN}Node '${node_name}' removed.${NC}"
+                done
+                echo -e "${GREEN}All nodes successfully uninstalled.${NC}"
             else
-                echo -e "${RED}Node directory not found!${NC}"
+                echo "Cancelled."
+            fi
+            elif [[ "$node_choice" =~ ^[0-9]+$ ]] && [ "$node_choice" -ge 1 ] && [ "$node_choice" -le ${#NODE_DIRS[@]} ]; then
+            selected_dir="${NODE_DIRS[$((node_choice-1))]}"
+            node_name=$(basename "$selected_dir" | sed 's/remnawave-node-//')
+            
+            echo -e "${RED}WARNING: This will delete node '${node_name}'!${NC}"
+            read -p "Are you sure? (y/n): " confirm
+            if [[ $confirm == "y" || $confirm == "Y" ]]; then
+                cd "$selected_dir"
+                echo -e "${BLUE}Stopping node '${node_name}'...${NC}"
+                docker compose down -v
+                cd /opt
+                echo -e "${BLUE}Removing files...${NC}"
+                rm -rf "$selected_dir"
+                echo -e "${GREEN}Node '${node_name}' successfully uninstalled.${NC}"
+            else
+                echo "Cancelled."
             fi
         else
-            echo "Cancelled."
+            echo -e "${RED}Invalid selection!${NC}"
         fi
-        ;;
-
+    ;;
+    
     5)
         exit 0
-        ;;
+    ;;
     *)
         echo "Invalid option."
-        ;;
+    ;;
 esac
