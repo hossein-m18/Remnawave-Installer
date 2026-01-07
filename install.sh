@@ -296,6 +296,8 @@ EOF
                     rm -rf "$dir"
                     echo -e "${GREEN}Node '${node_name}' removed.${NC}"
                 done
+                echo -e "${BLUE}Cleaning up unused networks...${NC}"
+                docker network prune -f
                 echo -e "${GREEN}All nodes successfully uninstalled.${NC}"
             else
                 echo "Cancelled."
@@ -313,6 +315,8 @@ EOF
                 cd /opt
                 echo -e "${BLUE}Removing files...${NC}"
                 rm -rf "$selected_dir"
+                echo -e "${BLUE}Cleaning up unused networks...${NC}"
+                docker network prune -f
                 echo -e "${GREEN}Node '${node_name}' successfully uninstalled.${NC}"
             else
                 echo "Cancelled."
