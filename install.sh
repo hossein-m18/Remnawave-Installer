@@ -210,6 +210,14 @@ EOF
             sed -i "s/container_name: remnanode/container_name: ${NODE_NAME}/g" docker-compose.yml
             sed -i "s/hostname: remnanode/hostname: ${NODE_NAME}/g" docker-compose.yml
             
+            # Extract NODE_PORT and calculate XRAY_API_PORT (NODE_PORT + 1000)
+            NODE_PORT=$(grep -oP 'NODE_PORT=\K[0-9]+' docker-compose.yml)
+            if [ -n "$NODE_PORT" ]; then
+                XRAY_API_PORT=$((NODE_PORT + 1000))
+                echo -e "${BLUE}Adding XRAY_API_PORT=${XRAY_API_PORT} (NODE_PORT + 1000)...${NC}"
+                sed -i "s/- NODE_PORT=${NODE_PORT}/- NODE_PORT=${NODE_PORT}\n      - XRAY_API_PORT=${XRAY_API_PORT}/g" docker-compose.yml
+            fi
+            
             echo -e "${BLUE}Starting Node '${NODE_NAME}'...${NC}"
             docker compose up -d
             echo -e "${GREEN}Node '${NODE_NAME}' started successfully!${NC}"
