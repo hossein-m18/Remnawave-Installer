@@ -205,6 +205,11 @@ EOF
         nano docker-compose.yml
         
         if [ -s docker-compose.yml ]; then
+            # Update container_name and hostname to match the user's chosen node name
+            echo -e "${BLUE}Updating container_name and hostname to '${NODE_NAME}'...${NC}"
+            sed -i "s/container_name: remnanode/container_name: ${NODE_NAME}/g" docker-compose.yml
+            sed -i "s/hostname: remnanode/hostname: ${NODE_NAME}/g" docker-compose.yml
+            
             echo -e "${BLUE}Starting Node '${NODE_NAME}'...${NC}"
             docker compose up -d
             echo -e "${GREEN}Node '${NODE_NAME}' started successfully!${NC}"
