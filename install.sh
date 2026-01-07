@@ -210,12 +210,18 @@ EOF
             sed -i "s/container_name: remnanode/container_name: ${NODE_NAME}/g" docker-compose.yml
             sed -i "s/hostname: remnanode/hostname: ${NODE_NAME}/g" docker-compose.yml
             
-            # Extract NODE_PORT and calculate XRAY_API_PORT (NODE_PORT + 1000)
+            # Extract NODE_PORT for port mapping
             NODE_PORT=$(grep -oP 'NODE_PORT=\K[0-9]+' docker-compose.yml)
+            
+            # Switch from host to bridge network mode to allow multiple nodes on same server
+            # Each container gets its own network namespace, avoiding internal port conflicts (61001/61002)
+            echo -e "${BLUE}Configuring bridge network mode for multi-node support...${NC}"
+            sed -i '/network_mode: host/d' docker-compose.yml
+            
+            # Add ports mapping after restart: always line
             if [ -n "$NODE_PORT" ]; then
-                XRAY_API_PORT=$((NODE_PORT + 1000))
-                echo -e "${BLUE}Adding XRAY_API_PORT=${XRAY_API_PORT} (NODE_PORT + 1000)...${NC}"
-                sed -i "s/- NODE_PORT=${NODE_PORT}/- NODE_PORT=${NODE_PORT}\n      - XRAY_API_PORT=${XRAY_API_PORT}/g" docker-compose.yml
+                echo -e "${BLUE}Mapping port ${NODE_PORT} for node communication...${NC}"
+                sed -i "/restart: always/a\\    ports:\\n      - \"${NODE_PORT}:${NODE_PORT}\"" docker-compose.yml
             fi
             
             echo -e "${BLUE}Starting Node '${NODE_NAME}'...${NC}"
