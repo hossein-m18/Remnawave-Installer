@@ -17,7 +17,7 @@
 
 برای نصب، کافیست دستور زیر را در ترمینال سرور خود (با دسترسی روت) کپی و اجرا کنید:
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/iaghapour/Remnawave-Installer/refs/heads/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/hossein-m18/Remnawave-Installer/refs/heads/main/install.sh)
 ````
 
 
